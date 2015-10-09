@@ -1,0 +1,17 @@
+# Presuming mod_rewrite
+RewriteEngine on
+
+#choose a type
+#note, if you choose type 1, the browser will automatically send a request for favicon.ico unless you redefine it in the html
+
+#type 1:
+#	Everything goes to index.php
+#RewriteCond %{REQUEST_URI} !=/index.php
+#RewriteRule .? index.php [L]
+
+
+#type 2:
+#	Everything except existing files goes to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_URI} !=/index.php
+RewriteRule .? index.php [L]
