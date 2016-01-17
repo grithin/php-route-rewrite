@@ -64,7 +64,6 @@ class Route{
 		$this->options = $options;
 	}
 
-	public $stopRouting;///<stops more rules from being called; use within rule file
 	public $tokens = array();///<an array of url path parts; rules can change this array
 	public $originalTokens = array();///<the original array of url path parts
 	public $parsedTokens = array();///<used internally

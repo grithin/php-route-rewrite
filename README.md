@@ -66,13 +66,6 @@ Route Loading:
 ```
 
 ### Stopping the Loop
-There are multiple ways to stop the loop, or stop part of the loop.  Either within a `_routing.php` file, or within the callback in a matched rule, you can do this:
-```php
-$route->stopRouting = true
-```
-You can do this because, with a callback, the $route instance a paramter, and with the `_routing.php` file, the $route instance is injected as `$route` into the file.
-
-
 A rule can have a flag of `loop:last`, and if that rule matches, the loop will stop after it.
 
 To partially stop the loop, there are two flags.
@@ -167,7 +160,6 @@ The `changeFunction` gets  the $route instance as the first parameter.  Therre a
 -	`matcher` is the pattern string used for matching
 -	`path` is the token path that is being matched against
 -	`regexMatch` is the match array corresponding to preg_match($subject,$pattern,$match)
--	`stopRouting` is a flag attribute which, when set  to true, will stop the reading and executing of further routing rules
 
 
 
