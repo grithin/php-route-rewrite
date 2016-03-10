@@ -76,6 +76,8 @@ class Route{
 	public $regexMatch=[];///< routing rules: the last regex rule match
 	public $matcher='';///< routing rules: the last matcher string used with a callback
 
+	public $globals = [];///< variables to add to every loaded control.  Will always include 'route', to allow in-control additions
+
 	/// routes path, then calls off all the control until no more or told to stop
 	function handle($path=null){
 		$path = $path ? $path : parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -107,11 +109,11 @@ class Route{
 
 	///will load controls according to parsedTokens and unparsedTokens
 	function load(){
-		$includedVariables = ['route'=>$this];
+		$this->globals['route'] = $this;
 
 		#see if there is an initial control.php file at the start of the control token loop
 		if(!$this->parsedTokens){
-			Files::inc($this->options['folder'].'_control.php',null,$includedVariables);	}
+			Files::inc($this->options['folder'].'_control.php',null,$this->globals);	}
 
 		$loaded = true;
 
@@ -126,9 +128,9 @@ class Route{
 				$loaded = false;
 				//if named file, load, otherwise load generic control in directory
 				if(is_file($path.'.php')){
-					$loaded = Files::inc($path.'.php',null,$includedVariables);
+					$loaded = Files::inc($path.'.php',null,$this->globals);
 				}elseif(is_file($path.'/_control.php')){
-					$loaded = Files::inc($path.'/_control.php',null,$includedVariables);
+					$loaded = Files::inc($path.'/_control.php',null,$this->globals);
 				}
 				//++ }
 			}
@@ -151,7 +153,7 @@ class Route{
 	///Gets files and then applies rules for routing
 	function resolveRoutes(){
 		$this->unparsedTokens = array_merge([''],$this->tokens);
-		$includedVariables = ['route'=>$this];
+		$this->globals['route'] = $this;
 
 		while($this->unparsedTokens && !$this->stopRouting){
 			$this->currentToken = array_shift($this->unparsedTokens);
@@ -161,7 +163,7 @@ class Route{
 
 			$path = $this->options['folder'].implode('/',$this->parsedTokens);
 			if(!isset($this->ruleSets[$path])){
-				$this->ruleSets[$path] = (array)Files::inc($path.'/_routing.php', null, $includedVariables, ['rules'])['rules'];
+				$this->ruleSets[$path] = (array)Files::inc($path.'/_routing.php', null, $this->globals, ['rules'])['rules'];
 			}
 			if(!$this->ruleSets[$path] || $this->stopRouting){
 				continue;

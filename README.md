@@ -203,3 +203,6 @@ $rules[] = ['bobFn',new \Grithin\Bound('doRoute')];
 -	'regex': applies regex pattern matching
 
 		Note,  the regex-match-groups from the last matched rule  are saved to $route->regexMatch.  Regex groups are created by using this syntax: `(?<id>[0-9]*)`.
+
+## Notes
+Route expects at least one file excluding a primary `_control.php` file.  If some route will end on the primary `_control.php`, you must either exit or catch and dispense the RouteException.
