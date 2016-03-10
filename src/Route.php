@@ -251,7 +251,6 @@ class Route{
 				if($rule['flags'][307]){
 					$httpRedirect = 307;	}
 				if($httpRedirect){
-					\Grithin\Debug::quit($replacement);
 					if($rule['flags']['params']){
 						$replacement = Http::appendsUrl(Http::parseQuery($_SERVER['QUERY_STRING']),$replacement);	}
 					Http::redirect($replacement,'head',$httpRedirect);	}
