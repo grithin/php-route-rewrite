@@ -145,6 +145,10 @@ class Route{
 	function applyPath($path){
 		$this->tokens = \Grithin\Strings::explode('/',$path);
 		$this->path = implode('/', $this->tokens);
+		# recap the "/" on the path
+		if(substr($path,-1) == '/'){
+			$this->path .= '/';
+		}
 		$this->caselessPath = strtolower($this->path);
 	}
 
@@ -235,7 +239,7 @@ class Route{
 					}else{
 						$bound = new Bound('\Grithin\Route::regexReplacer', [$rule[1]]);
 					}
-					$replacement = preg_replace_callback($rule['matcher'], $bound, $this->path);
+					$replacement = preg_replace_callback($rule['matcher'], $bound, $this->path, 1);
 				}else{
 					if(is_callable($rule[1])){
 						$this->matcher = $rule['matcher'];
