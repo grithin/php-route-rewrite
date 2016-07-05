@@ -64,6 +64,8 @@ class Route{
 		$this->options = $options;
 	}
 
+	public $debug = false;
+
 	public $tokens = array();///<an array of url path parts; rules can change this array
 	public $originalTokens = array();///<the original array of url path parts
 	public $parsedTokens = array();///<used internally
@@ -113,6 +115,9 @@ class Route{
 
 		#see if there is an initial control.php file at the start of the control token loop
 		if(!$this->parsedTokens){
+			if($this->debug){
+				Debug::log('Loading Control: '.$this->options['folder'].'_control.php',['title'=>'Route']);
+			}
 			Files::inc($this->options['folder'].'_control.php',null,$this->globals);	}
 
 		$loaded = true;
@@ -128,9 +133,17 @@ class Route{
 				$loaded = false;
 				//if named file, load, otherwise load generic control in directory
 				if(is_file($path.'.php')){
-					$loaded = Files::inc($path.'.php',null,$this->globals);
+					$file = $path.'.php';
+					if($this->debug){
+						Debug::log('Loading Control: '.$path.'.php',['title'=>'Route']);
+					}
+					$loaded = Files::inc($file,null,$this->globals);
 				}elseif(is_file($path.'/_control.php')){
-					$loaded = Files::inc($path.'/_control.php',null,$this->globals);
+					$file = $path.'/_control.php';
+					if($this->debug){
+						Debug::log('Loading Control: '.$path.'.php',['title'=>'Route']);
+					}
+					$loaded = Files::inc($file,null,$this->globals);
 				}
 				//++ }
 			}
@@ -230,6 +243,9 @@ class Route{
 					$matched = true;	}	}
 
 			if($matched){
+				if($this->debug){
+					Debug::log(['Matched Rule',$rule],['title'=>'Route']);
+				}
 				$this->matchedRules[] = $rule;
 				//++ apply replacement logic {
 				if($rule['flags']['regex']){
