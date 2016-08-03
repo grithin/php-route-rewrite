@@ -63,8 +63,13 @@ class Route{
 		}
 		$this->options = $options;
 	}
-
-	public $debug = false;
+	/*
+	state:
+	-	0: no debug
+	-	1: debug log
+	-	2: debug log + skip loads
+	*/
+	public $debug = 0;
 
 	public $tokens = array();///<an array of url path parts; rules can change this array
 	public $originalTokens = array();///<the original array of url path parts
@@ -79,6 +84,8 @@ class Route{
 	public $matcher='';///< routing rules: the last matcher string used with a callback
 
 	public $globals = [];///< variables to add to every loaded control.  Will always include 'route', to allow in-control additions
+
+	public $max_loops = 20;
 
 	/// routes path, then calls off all the control until no more or told to stop
 	function handle($path=null){
@@ -109,11 +116,11 @@ class Route{
 		$this->load();
 	}
 
-	///will load controls according to parsedTokens and unparsedTokens
+	/// will load controls according to parsedTokens and unparsedTokens
 	function load(){
 		$this->globals['route'] = $this;
 
-		#see if there is an initial control.php file at the start of the control token loop
+		# see if there is an initial control.php file at the start of the control token loop
 		if(!$this->parsedTokens){
 			if($this->debug){
 				Debug::log('Loading Control: '.$this->options['folder'].'_control.php',['title'=>'Route']);
@@ -121,27 +128,43 @@ class Route{
 			Files::inc($this->options['folder'].'_control.php',null,$this->globals);	}
 
 		$loaded = true;
+		$i = 0;
 
 		while($this->unparsedTokens){
 			$this->currentToken = array_shift($this->unparsedTokens);
 			if($this->currentToken){//ignore blank tokens
+				$i++;
+				if($i > $this->max_loops){
+					Debug::out($this);
+					Debug::toss('Route appears to be looping infinitely');
+				}
+
 				$this->parsedTokens[] = $this->currentToken;
 
 				//++ load the control {
 				$path = $this->options['folder'].implode('/',$this->parsedTokens);
 
+
 				$loaded = false;
-				//if named file, load, otherwise load generic control in directory
+				// if named file, load, otherwise load generic control in directory
 				if(is_file($path.'.php')){
 					$file = $path.'.php';
 					if($this->debug){
 						Debug::log('Loading Control: '.$path.'.php',['title'=>'Route']);
+						if($this->debug == 2){
+							Debug::out('Skipping Load');
+							continue;
+						}
 					}
 					$loaded = Files::inc($file,null,$this->globals);
 				}elseif(is_file($path.'/_control.php')){
 					$file = $path.'/_control.php';
 					if($this->debug){
 						Debug::log('Loading Control: '.$path.'.php',['title'=>'Route']);
+						if($this->debug == 2){
+							Debug::out('Skipping Load');
+							continue;
+						}
 					}
 					$loaded = Files::inc($file,null,$this->globals);
 				}
@@ -172,7 +195,16 @@ class Route{
 		$this->unparsedTokens = array_merge([''],$this->tokens);
 		$this->globals['route'] = $this;
 
+		$i = 0;
+
 		while($this->unparsedTokens && !$this->stopRouting){
+			$i++;
+			if($i > $this->max_loops){
+				Debug::out('_routing rules are looping');
+				Debug::out($this);
+				Debug::toss('Route appears to be looping infinitely');
+			}
+
 			$this->currentToken = array_shift($this->unparsedTokens);
 			if($this->currentToken){
 				$this->parsedTokens[] = $this->currentToken;
