@@ -125,7 +125,7 @@ class Route{
 			if($this->debug){
 				Debug::log('Loading Control: '.$this->options['folder'].'_control.php',['title'=>'Route']);
 			}
-			Files::inc($this->options['folder'].'_control.php',null,$this->globals);	}
+			Files::inc($this->options['folder'].'_control.php',$this->globals);	}
 
 		$loaded = true;
 		$i = 0;
@@ -156,7 +156,7 @@ class Route{
 							continue;
 						}
 					}
-					$loaded = Files::inc($file,null,$this->globals);
+					$loaded = Files::inc($file,$this->globals);
 				}elseif(is_file($path.'/_control.php')){
 					$file = $path.'/_control.php';
 					if($this->debug){
@@ -166,7 +166,7 @@ class Route{
 							continue;
 						}
 					}
-					$loaded = Files::inc($file,null,$this->globals);
+					$loaded = Files::inc($file,$this->globals);
 				}
 				//++ }
 			}
@@ -212,7 +212,7 @@ class Route{
 
 			$path = $this->options['folder'].implode('/',$this->parsedTokens);
 			if(!isset($this->ruleSets[$path])){
-				$this->ruleSets[$path] = (array)Files::inc($path.'/_routing.php', null, $this->globals, ['rules'])['rules'];
+				$this->ruleSets[$path] = (array)Files::inc($path.'/_routing.php', $this->globals, ['extract'=>['rules']])['rules'];
 			}
 			if(!$this->ruleSets[$path] || $this->stopRouting){
 				continue;
