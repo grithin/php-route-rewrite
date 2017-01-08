@@ -2,7 +2,7 @@
 RewriteEngine on
 
 #choose a type
-#note, if you choose type 1, the browser will automatically send a request for favicon.ico unless you redefine it in the html
+#note, if you choose type 1, the browser will automatically send a request for favicon.ico unless you redine it in the html
 
 #type 1:
 #	Everything goes to index.php
@@ -15,3 +15,30 @@ RewriteEngine on
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_URI} !=/index.php
 RewriteRule .? index.php [L]
+
+
+
+# Presuming mod_php5
+php_flag magic_quotes_gpc					off
+php_flag magic_quotes_sybase				off
+php_flag register_globals					off
+php_flag session.auto_start					off
+php_value mbstring.http_input				pass
+php_value mbstring.http_output				pass
+php_flag mbstring.encoding_translation		off
+
+php_flag magic_quotes_runtime				off
+php_flag magic_quotes_sybase				off
+
+
+ExpiresActive On
+ExpiresDefault "access plus 60 seconds"
+ExpiresByType text/html "access plus 1 seconds"
+ExpiresByType image/gif "access plus 120 minutes"
+ExpiresByType image/jpeg "access plus 120 minutes"
+ExpiresByType image/png "access plus 120 minutes"
+ExpiresByType text/css "access plus 60 minutes"
+ExpiresByType text/javascript "access plus 60 minutes"
+ExpiresByType application/javascript "access plus 60 minutes"
+ExpiresByType application/x-javascript "access plus 60 minutes"
+ExpiresByType text/xml "access plus 60 minutes"

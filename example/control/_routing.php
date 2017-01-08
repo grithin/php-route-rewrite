@@ -1,29 +1,25 @@
 <?
 
-
-
-function globally($route){
-	\Grithin\Debug::out([$route->regexMatch, $route->tokens]);
-	\Grithin\Debug::quit('Route Rule Function Called');
+function saySomething(){
+	die('something');
 }
-class example{
-	static function statically($route){
-		\Grithin\Debug::out([$route->regexMatch, $route->tokens]);
-		\Grithin\Debug::quit('Route Rule Function Called');
-	}
-	function instancely($route){
-		\Grithin\Debug::out([$route->regexMatch, $route->tokens]);
-		\Grithin\Debug::quit('Route Rule Function Called');
+
+function sayNothing(){
+	die('nothing');
+}
+class sayNothingClass{
+	static function sayNothing(){
+		die('nothing class');
 	}
 }
 
-$example = new example;
-$rules[] = ['globalFunction.*', new \Grithin\Bound('globally'), 'regex,caseless'];
-$rules[] = ['instanceMethod.*',[$example,'instancely'], 'regex,caseless'];
-$rules[] = ['staticMethod.*',['example','statically'], 'regex,caseless'];
 
-
-$rules[] = ['index', '/', '301'];#< redirect
-
-$rules[] = ['', '/index', 'last'];#< note, b/c the replacement "index" would be matched by the preceding rule, we must specify this as the last rule if matched
-$rules[] = ['bill/(?<id>.*)', 'test/bob/[id]', 'regex'];
+return [
+	['test/something','\\saySomethings'], # special namespaced string interpretted as callable by router
+	['test/nothing',new \Grithin\Bound('sayNothing')], # another way to make a string interpretted as callable by the router
+	['test/moreNothing',['sayNothingClass','sayNothing']],
+	['test/bill','/test/bob'], # plain replacement
+	['test/sue','/test/jan', 'last'],
+	['test/jan','/test/jill'],
+	['test/from/(?<id>[0-9]+)','/test/to/[id]', 'regex,last'],
+];

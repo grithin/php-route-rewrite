@@ -13,32 +13,6 @@ use \Grithin\Http;
 
 ///Used to handle requests by determining path, then determining controls
 /**
-See routes.sample.php for route rule information
-
-Route Rules Logic
-	All routes are optional
-	Routes are discovered one level at a time, and previous routing rules affect the discovery of new routes
-	if a matching rule is found, the Route rules loop starts over with the new path (unless option set to not do this)
-
-	http://bobery.com/bob/bill/sue:
-		control/routes.php
-		control/bob/routes.php
-		control/bob/bill/routes.php
-		control/bob/bill/sue/routes.php
-
-
-Controls Calling Logic:
-	All controls are optional.  However, if the Route is still looping tokens (stop it by exiting or emptying $this->unparsedTokens) and the last token does not match a control, page not found returned
-
-	http://bobery.com/bob/bill/sue:
-		control/control.php
-		control/bob.php || control/bob/control.php
-		control/bob/bill.php || control/bob/bill/control.php
-		control/bob/bill/sue.php || control/bob/bill/sue/control.php
-
-File Routing
-	If, for some reason, Route is given a request that has a urlProjectFileToken or a systemPublicFolder prefix, Route will send that file after determining the path through the Route Rules Logic
-
 @note	if you get confused about what is going on with the rules, you can print out both self::$matchedRules and $this->ruleSets at just about any time
 @note	dashes in paths will not work with namespacing.  Dashes in the last token will be handled by turning the name of the corresponding local tool into a lower camel cased name.
 */
@@ -50,9 +24,13 @@ File Routing
 @param	options	{
 	notFoundCallback: <the callback to use (passed $this) when a route has non handled trailing tokens>,
 	folder: <the control folder to use for disconvering control files and route files>
+	logger: <callback to use to log at various points in the routing process>
 }
+
+logger in form function($name, $route_instance, $details)
 */
 class Route{
+	public $logger = false;
 	function __construct($options=[]){
 		if(!$options['folder']){
 			$firstFile = \Grithin\Reflection::firstFileExecuted();
@@ -62,6 +40,9 @@ class Route{
 			throw new \Exception('Control folder does not exist');
 		}
 		$this->options = $options;
+		if($options['logger']){
+			$this->logger = $options['logger'];
+		}
 	}
 	/*
 	state:
@@ -91,7 +72,7 @@ class Route{
 	function handle($path=null){
 		$path = $path ? $path : parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-		$this->applyPath($path);
+		$this->path_set($path);
 		$this->originalTokens = $this->tokens;
 
 		$this->resolveRoutes();
@@ -122,21 +103,20 @@ class Route{
 
 		# see if there is an initial control.php file at the start of the control token loop
 		if(!$this->parsedTokens){
-			if($this->debug){
-				Debug::log('Loading Control: '.$this->options['folder'].'_control.php',['title'=>'Route']);
+			if($this->logger){
+				$this->options['logger']('loading global control', $this, $this->options['folder'].'_control.php'); # must call from options, otherwise php will get confused about the `$this` part
 			}
 			Files::inc($this->options['folder'].'_control.php',$this->globals);	}
 
 		$loaded = true;
 		$i = 0;
 
-		while($this->unparsedTokens){
+		while($this->unparsedTokens && !$this->control_ended){
 			$this->currentToken = array_shift($this->unparsedTokens);
 			if($this->currentToken){//ignore blank tokens
 				$i++;
 				if($i > $this->max_loops){
-					Debug::out($this);
-					Debug::toss('Route appears to be looping infinitely');
+					throw new RouteException(array_merge((array)$this, ['message'=>'Router control loop appears to be looping infinitely']));
 				}
 
 				$this->parsedTokens[] = $this->currentToken;
@@ -149,22 +129,14 @@ class Route{
 				// if named file, load, otherwise load generic control in directory
 				if(is_file($path.'.php')){
 					$file = $path.'.php';
-					if($this->debug){
-						Debug::log('Loading Control: '.$path.'.php',['title'=>'Route']);
-						if($this->debug == 2){
-							Debug::out('Skipping Load');
-							continue;
-						}
+					if($this->logger){
+						$this->options['logger']('loading control', $this, $file); # must call from options, otherwise php will get confused about the `$this` part
 					}
 					$loaded = Files::inc($file,$this->globals);
 				}elseif(is_file($path.'/_control.php')){
 					$file = $path.'/_control.php';
-					if($this->debug){
-						Debug::log('Loading Control: '.$path.'.php',['title'=>'Route']);
-						if($this->debug == 2){
-							Debug::out('Skipping Load');
-							continue;
-						}
+					if($this->logger){
+						$this->options['logger']('loading control', $this, $file); # must call from options, otherwise php will get confused about the `$this` part
 					}
 					$loaded = Files::inc($file,$this->globals);
 				}
@@ -175,11 +147,17 @@ class Route{
 				if($this->options['notFoundCallback']){
 					call_user_func($this->options['notFoundCallback'],$this);
 				}else{
-					Debug::toss('Request handler encountered unresolvable token at control level.'."\nCurrent token: ".$this->currentToken."\nTokens parsed".print_r($this->parsedTokens,true), 'RouteException');		}	}	}
+					throw new RouteException(array_merge((array)$this, ['message'=>'Request handler encountered unresolvable token at control level']));
+				}	}	}
 	}
 
-	function applyPath($path){
-		$this->tokens = \Grithin\Strings::explode('/',$path);
+	protected $control_ended = false;
+	public function control_end(){
+		$this->control_ended = true;
+	}
+
+	function path_set($path){
+		$this->tokens = \Grithin\Strings::explode('/',$path); # clear multiple ending `/`'s
 		$this->path = implode('/', $this->tokens);
 		# recap the "/" on the path
 		if(substr($path,-1) == '/'){
@@ -197,12 +175,13 @@ class Route{
 
 		$i = 0;
 
-		while($this->unparsedTokens && !$this->stopRouting){
+		while(
+			$this->unparsedTokens
+			&& !$this->routing_ended # a rule callback may have set this
+		){
 			$i++;
 			if($i > $this->max_loops){
-				Debug::out('_routing rules are looping');
-				Debug::out($this);
-				Debug::toss('Route appears to be looping infinitely');
+				throw new RouteException(array_merge((array)$this, ['message'=>'Router route loop appears to be looping infinitely']));
 			}
 
 			$this->currentToken = array_shift($this->unparsedTokens);
@@ -212,9 +191,10 @@ class Route{
 
 			$path = $this->options['folder'].implode('/',$this->parsedTokens);
 			if(!isset($this->ruleSets[$path])){
-				$this->ruleSets[$path] = (array)Files::inc($path.'/_routing.php', $this->globals, ['extract'=>['rules']])['rules'];
+				$rules = Files::inc($path.'/_routing.php', $this->globals);
+				$this->ruleSets[$path] = is_array($rules) ? $rules : [];
 			}
-			if(!$this->ruleSets[$path] || $this->stopRouting){
+			if($this->routing_ended){ # route file may have set this
 				continue;
 			}
 			//note, on match, matehRules resets unparsedTokens (having the effect of loopiing matchRules over again)
@@ -222,6 +202,11 @@ class Route{
 		}
 
 		$this->parsedTokens = [];
+	}
+
+	protected $routing_ended = false;
+	public function routing_end(){
+		$this->routing_ended = true;
 	}
 
 	///for handling '[name]' style regex replacements
@@ -233,20 +218,36 @@ class Route{
 		}
 		return $replacement;
 	}
+	/*
+	allow special handling of strings  starting with '\' to be considered potentially callable
+	*/
+	static function is_callable($thing){
+		if((!is_string($thing) || $thing[0] == '\\') && is_callable($thing)){
+			return true;
+		}
+		return false;
+	}
 
 	///internal use. Parses all current files and rules
 	/** adds file and rules to ruleSets and parses all active rules in current file and former files
 	@param	path	str	file location string
 	*/
 	function matchRules($path,&$rules){
-		foreach($rules as $ruleKey=>&$rule){
+		if($this->logger){
+			$this->options['logger']('route rules testing', $this, $path); # must call from options, otherwise php will get confused about the `$this` part
+		}
+		foreach((array)$rules as $ruleKey=>&$rule){
 			if(!$rule){
 				# rule may have been flagged "once"
 				continue;
 			}
 			unset($matched);
 			if(!isset($rule['flags'])){
-				$flags = $rule[2] ? explode(',',$rule[2]) : array();
+				if(is_string($rule[2])){
+					$flags = explode(',',$rule[2]);
+				}else{
+					$flags = (array)$rule[2];
+				}
 				$rule['flags'] = array_fill_keys(array_values($flags),true);
 
 				//parse flags for determining match string
@@ -275,23 +276,24 @@ class Route{
 					$matched = true;	}	}
 
 			if($matched){
-				if($this->debug){
-					Debug::log(['Matched Rule',$rule],['title'=>'Route']);
+				if($this->logger){
+					$this->options['logger']('route rule matched', $this, $rule); # must call from options, otherwise php will get confused about the `$this` part
 				}
+
 				$this->matchedRules[] = $rule;
 				//++ apply replacement logic {
 				if($rule['flags']['regex']){
-					if(is_callable($rule[1])){
+					if(self::is_callable($rule[1])){
 						$this->matcher = $rule['matcher'];
-						$bound = new Bound($rule[1], [$this]);
+						$bound = new Bound($rule[1], [$this, $rule]);
 					}else{
 						$bound = new Bound('\Grithin\Route::regexReplacer', [$rule[1]]);
 					}
 					$replacement = preg_replace_callback($rule['matcher'], $bound, $this->path, 1);
 				}else{
-					if(is_callable($rule[1])){
+					if(self::is_callable($rule[1])){
 						$this->matcher = $rule['matcher'];
-						$replacement = call_user_func($rule[1], $this);
+						$replacement = call_user_func($rule[1], $this, $rule);
 					}else{
 						$replacement = $rule[1];	}	}
 
@@ -308,7 +310,7 @@ class Route{
 					Http::redirect($replacement,'head',$httpRedirect);	}
 
 				//remake url with replacement
-				$this->applyPath($replacement);
+				$this->path_set($replacement);
 				$this->parsedTokens = [];
 				$this->unparsedTokens = array_merge([''],$this->tokens);
 				//++ }
@@ -328,3 +330,6 @@ class Route{
 		return false;
 	}
 }
+
+
+class RouteException extends \Grithin\ComplexException{}
