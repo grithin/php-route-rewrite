@@ -119,6 +119,20 @@ Flags can change interpretation of match_pattern.
 
 The last match is also stored in $route->regexMatch
 
+##### Using Matches
+Apart from a match callback (see $change &gt; callable), the control files have access to the route instance.  And, with a rule like `['test/from/(?<id>[0-9]+)','/test/to/[id]', 'regex,last']`, we have:
+```js
+route.tokens = [
+	"test",
+	"to",
+	"123"]
+route.regexMatch = {
+	"0": "test\/from\/123",
+	"id": "123",
+	"1": "123"}
+```
+
+
 #### $change
 
 Can be a string or callable
@@ -158,7 +172,19 @@ Comma separrated flags, or an array of flags
 -	'regex': applies regex pattern matching
 
 
+#### Useful Examples
+Point folders to index control files
+```php
+return [
+	['^$','index','regex,last'], # the root path, special in that the initial `/` is removed and the path is empty
+	['^(?<path>.*)/$','[path]/index','regex,last'], # paths ending in `/` to be pointed to their corresponding index control files
+]
+```
 
+Re-assignment of id
+```php
+['test/from/(?<id>[0-9]+)','/test/to/[id]', 'regex,last'],
+```
 
 ## Control
 Loaded control files have the $route instance injected into their context, along with anything else keyed by the `$route->globals` array.

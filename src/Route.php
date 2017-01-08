@@ -159,8 +159,8 @@ class Route{
 	function path_set($path){
 		$this->tokens = \Grithin\Strings::explode('/',$path); # clear multiple ending `/`'s
 		$this->path = implode('/', $this->tokens);
-		# recap the "/" on the path
-		if(substr($path,-1) == '/'){
+		# recap the "/" on the path, if the path is not simply `/`
+		if(strlen($path)>1 && substr($path,-1) == '/'){
 			$this->path .= '/';
 		}
 		$this->caselessPath = strtolower($this->path);
