@@ -99,7 +99,7 @@ class Route{
 
 	/// will load controls according to parsedTokens and unparsedTokens
 	function load(){
-		$this->globals['route'] = $this;
+		$this->globals['Route'] = $this->globals['route'] = $this;
 
 		# see if there is an initial control.php file at the start of the control token loop
 		if(!$this->parsedTokens){
@@ -171,7 +171,7 @@ class Route{
 	///Gets files and then applies rules for routing
 	function resolveRoutes(){
 		$this->unparsedTokens = array_merge([''],$this->tokens);
-		$this->globals['route'] = $this;
+		$this->globals['Route'] = $this->globals['route'] = $this;
 
 		$i = 0;
 
