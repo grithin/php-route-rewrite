@@ -43,6 +43,10 @@ class Route{
 		if($options['logger']){
 			$this->logger = $options['logger'];
 		}
+
+		#+ deprecation linking {
+		$this->regexMatch = &$this->regex_last_match;
+		#+ }
 	}
 	/*
 	state:
@@ -61,12 +65,14 @@ class Route{
 	public $caselessPath;///<path, but cases removed
 	public $currentToken;///<used internally; serves as the item compared on token compared rules
 
-	public $regexMatch=[];///< routing rules: the last regex rule match
+	public $regex_last_match=[]; # routing rules: the last regex rule match
+	public $regex_matches = []; # compilation of regex match groups
 	public $matcher='';///< routing rules: the last matcher string used with a callback
 
 	public $globals = [];///< variables to add to every loaded control.  Will always include 'route', to allow in-control additions
 
 	public $max_loops = 20;
+
 
 	/// routes path, then calls off all the control until no more or told to stop
 	function handle($path=null){
@@ -142,12 +148,38 @@ class Route{
 				}
 				//++ }
 			}
+
+
 			//not loaded and was last token, page not found
 			if($loaded === false && !$this->unparsedTokens){
-				if($this->options['notFoundCallback']){
-					call_user_func($this->options['notFoundCallback'],$this);
-				}else{
-					throw new RouteException(array_merge((array)$this, ['message'=>'Request handler encountered unresolvable token at control level']));
+				#+ Try contexted 404s {
+				$parsedTokens = $this->parsedTokens;
+				$test_404 = function($parsedTokens){
+					$path = $this->options['folder'].implode('/',$parsedTokens);
+					if(is_file($path.'/404.php')){
+						$file = $path.'/404.php';
+						if($this->logger){
+							$this->options['logger']('loading control', $this, $file); # must call from options, otherwise php will get confused about the `$this` part
+						}
+						return Files::inc($file,$this->globals);
+					}
+					return false;
+				};
+				while(array_pop($parsedTokens)){
+					if($loaded = $test_404($parsedTokens)){
+						break;
+					}
+				}
+				if(!$loaded){
+					$loaded = $test_404([]);
+				}
+				#+ }
+				if($loaded === false){
+					if($this->options['notFoundCallback']){
+						call_user_func($this->options['notFoundCallback'],$this);
+					}else{
+						throw new RouteException(array_merge((array)$this, ['message'=>'Request handler encountered unresolvable token at control level']));
+					}
 				}	}	}
 	}
 
@@ -209,12 +241,18 @@ class Route{
 		$this->routing_ended = true;
 	}
 
+
+	public function regex_callback($replacer, $matches){
+		foreach($matches as $k=>$v){
+			$this->regex_matches[$k] = $v;
+		}
+		return $replacer($matches);
+	}
+
 	///for handling '[name]' style regex replacements
 	static function regexReplacer($replacement,$matches){
 		foreach($matches as $k=>$v){
-			if(!is_int($k)){
-				$replacement = str_replace('['.$k.']',$v,$replacement);
-			}
+			$replacement = str_replace('['.$k.']',$v,$replacement);
 		}
 		return $replacement;
 	}
@@ -269,7 +307,7 @@ class Route{
 
 			//test match
 			if($rule['flags']['regex']){
-				if(preg_match($rule['matcher'],$subject,$this->regexMatch)){
+				if(preg_match($rule['matcher'],$subject, $this->regex_last_match)){
 					$matched = true;	}
 			}else{
 				if($rule['matcher'] == $subject){
@@ -289,7 +327,8 @@ class Route{
 					}else{
 						$bound = new Bound('\Grithin\Route::regexReplacer', [$rule[1]]);
 					}
-					$replacement = preg_replace_callback($rule['matcher'], $bound, $this->path, 1);
+					$callback = new Bound([$this, 'regex_callback'], [$bound]);
+					$replacement = preg_replace_callback($rule['matcher'], $callback, $this->path, 1);
 				}else{
 					if(self::is_callable($rule[1])){
 						$this->matcher = $rule['matcher'];

@@ -108,6 +108,13 @@ Flags can change interpretation of match_pattern.
 
 
 #### Regex
+##### Default Numeric Group Matches
+```php
+# reposition id
+['/item/([0-9]+)/view', '/item/view/[1]', 'regex']
+```
+
+
 ##### Named Matches
 ```php
 # match anything and name it "path"
@@ -117,7 +124,10 @@ Flags can change interpretation of match_pattern.
 ['old/(?<id>[0-9]+)', 'new/[id]','regex']
 ```
 
-The last match is also stored in $route->regexMatch
+-	The last match is also stored in `$route->regex_last_match`
+-	A compilation of matches is stored in `$route->regex_matches`
+-	Both of these will have keyed values, both of the numeric indices and the named group (if a named group is present)
+	-	ex `$Route->regex_matches['id']`
 
 ##### Using Matches
 Apart from a match callback (see $change &gt; callable), the control files have access to the route instance.  And, with a rule like `['test/from/(?<id>[0-9]+)','/test/to/[id]', 'regex,last']`, we have:
@@ -181,10 +191,12 @@ return [
 ]
 ```
 
-Re-assignment of id
+Re-assignment of id:
+-	in `_routing.php`
 ```php
 ['test/from/(?<id>[0-9]+)','/test/to/[id]', 'regex,last'],
 ```
+-	this also provides `$Route->named_matches['id']`
 
 ## Control
 Loaded control files have the $route instance injected into their context, along with anything else keyed by the `$route->globals` array.
