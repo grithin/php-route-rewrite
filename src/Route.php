@@ -40,7 +40,7 @@ class Route{
 			throw new \Exception('Control folder does not exist');
 		}
 		$this->options = $options;
-		if($options['logger']){
+		if(!empty($options['logger'])){
 			$this->logger = $options['logger'];
 		}
 
@@ -289,18 +289,18 @@ class Route{
 				$rule['flags'] = array_fill_keys(array_values($flags),true);
 
 				//parse flags for determining match string
-				if($rule['flags']['regex']){
+				if(!empty($rule['flags']['regex'])){
 					$rule['matcher'] = \Grithin\Strings::pregDelimit($rule[0]);
 					if($rule['flags']['caseless']){
 						$rule['matcher'] .= 'i';	}
 
 				}else{
-					if($rule['flags']['caseless']){
+					if(!empty($rule['flags']['caseless'])){
 						$rule['matcher'] = strtolower($rule[0]);
 					}else{
 						$rule['matcher'] = $rule[0];	}	}	}
 
-			if($rule['flags']['caseless']){
+			if(!empty($rule['flags']['caseless'])){
 				$subject = $this->caselessPath;
 			}else{
 				$subject = $this->path;	}
@@ -344,7 +344,7 @@ class Route{
 				if($rule['flags'][307]){
 					$httpRedirect = 307;	}
 				if($httpRedirect){
-					if($rule['flags']['params']){
+					if(!empty($rule['flags']['params'])){
 						$replacement = Http::appendsUrl(Http::parseQuery($_SERVER['QUERY_STRING']),$replacement);	}
 					Http::redirect($replacement,'head',$httpRedirect);	}
 
@@ -355,11 +355,11 @@ class Route{
 				//++ }
 
 				//++ apply parse flag {
-				if($rule['flags']['once']){
+				if(!empty($rule['flags']['once'])){
 					$rules[$ruleKey] = null;
-				}elseif($rule['flags']['file:last']){
+				}elseif(!empty($rule['flags']['file:last'])){
 					$this->ruleSets[$path] = [];
-				}elseif($rule['flags']['last']){
+				}elseif(!empty($rule['flags']['last'])){
 					$this->unparsedTokens = [];	}
 				//++ }
 
