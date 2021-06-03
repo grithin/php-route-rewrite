@@ -32,7 +32,7 @@ logger in form function($name, $route_instance, $details)
 class Route{
 	public $logger = false;
 	function __construct($options=[]){
-		if(!$options['folder']){
+		if(empty($options['folder'])){
 			$firstFile = \Grithin\Reflection::firstFileExecuted();
 			$options['folder'] = dirname($firstFile).'/control/';
 		}
