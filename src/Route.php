@@ -279,7 +279,7 @@ class Route{
 				# rule may have been flagged "once"
 				continue;
 			}
-			unset($matched);
+			$matched = false;
 			if(!isset($rule['flags'])){
 				if(is_string($rule[2])){
 					$flags = explode(',',$rule[2]);
