@@ -291,7 +291,7 @@ class Route{
 				//parse flags for determining match string
 				if(!empty($rule['flags']['regex'])){
 					$rule['matcher'] = \Grithin\Strings::pregDelimit($rule[0]);
-					if($rule['flags']['caseless']){
+					if(!empty($rule['flags']['caseless'])){
 						$rule['matcher'] .= 'i';	}
 
 				}else{
@@ -306,7 +306,7 @@ class Route{
 				$subject = $this->path;	}
 
 			//test match
-			if($rule['flags']['regex']){
+			if(!empty($rule['flags']['regex'])){
 				if(preg_match($rule['matcher'],$subject, $this->regex_last_match)){
 					$matched = true;	}
 			}else{
@@ -320,7 +320,7 @@ class Route{
 
 				$this->matchedRules[] = $rule;
 				//++ apply replacement logic {
-				if($rule['flags']['regex']){
+				if(!empty($rule['flags']['regex'])){
 					if(self::is_callable($rule[1])){
 						$this->matcher = $rule['matcher'];
 						$bound = new Bound($rule[1], [$this, $rule]);
@@ -337,11 +337,11 @@ class Route{
 						$replacement = $rule[1];	}	}
 
 				//handle redirects
-				if($rule['flags'][301]){
+				if(!empty($rule['flags'][301])){
 					$httpRedirect = 301;	}
-				if($rule['flags'][303]){
+				if(!empty($rule['flags'][303])){
 					$httpRedirect = 303;	}
-				if($rule['flags'][307]){
+				if(!empty($rule['flags'][307])){
 					$httpRedirect = 307;	}
 				if($httpRedirect){
 					if(!empty($rule['flags']['params'])){
