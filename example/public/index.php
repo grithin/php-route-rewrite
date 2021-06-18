@@ -1,4 +1,4 @@
-<?
+<?php
 $_ENV['public_path'] = __DIR__;
 $_ENV['public_folder'] = __DIR__.'/';
 
