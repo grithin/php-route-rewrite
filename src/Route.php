@@ -6,6 +6,7 @@ use \Grithin\Tool;
 use \Grithin\Files;
 use \Grithin\Bound;
 use \Grithin\Http;
+use \Grithin\Url;
 
 
 
@@ -345,7 +346,7 @@ class Route{
 					$httpRedirect = 307;	}
 				if($httpRedirect){
 					if(!empty($rule['flags']['params'])){
-						$replacement = Http::appendsUrl(Http::parseQuery($_SERVER['QUERY_STRING']),$replacement);	}
+						$replacement = Url::appends(Url::query_parse($_SERVER['QUERY_STRING']),$replacement);	}
 					Http::redirect($replacement,'head',$httpRedirect);	}
 
 				//remake url with replacement
