@@ -49,7 +49,7 @@ class Route{
 		$this->regexMatch = &$this->regex_last_match;
 		#+ }
 	}
-	/*
+	/**
 	state:
 	-	0: no debug
 	-	1: debug log
@@ -75,7 +75,7 @@ class Route{
 	public $max_loops = 20;
 
 
-	/// routes path, then calls off all the control until no more or told to stop
+	/** routes path, then calls off all the control until no more or told to stop */
 	function handle($path=null){
 		$path = $path ? $path : parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
@@ -87,7 +87,7 @@ class Route{
 		$this->load();
 	}
 
-	///handle the loading of a particular control path
+	/** handle the loading of a particular control path */
 	/**
 	@param	start	<<will skip controls prior to start>>
 	*/
@@ -104,7 +104,7 @@ class Route{
 		$this->load();
 	}
 
-	/// will load controls according to parsedTokens and unparsedTokens
+	/** will load controls according to parsedTokens and unparsedTokens */
 	function load(){
 		$this->globals['Route'] = $this->globals['route'] = $this;
 
@@ -201,7 +201,7 @@ class Route{
 
 	static $ruleSets;///<files containing rules that have been included
 
-	///Gets files and then applies rules for routing
+	/** Gets files and then applies rules for routing */
 	function resolveRoutes(){
 		$this->unparsedTokens = array_merge([''],$this->tokens);
 		$this->globals['Route'] = $this->globals['route'] = $this;
@@ -250,14 +250,14 @@ class Route{
 		return $replacer($matches);
 	}
 
-	///for handling '[name]' style regex replacements
+	/** for handling '[name]' style regex replacements */
 	static function regexReplacer($replacement,$matches){
 		foreach($matches as $k=>$v){
 			$replacement = str_replace('['.$k.']',$v,$replacement);
 		}
 		return $replacement;
 	}
-	/*
+	/**
 	allow special handling of strings  starting with '\' to be considered potentially callable
 	*/
 	static function is_callable($thing){
@@ -267,7 +267,7 @@ class Route{
 		return false;
 	}
 
-	///internal use. Parses all current files and rules
+	/** internal use. Parses all current files and rules */
 	/** adds file and rules to ruleSets and parses all active rules in current file and former files
 	@param	path	str	file location string
 	*/
