@@ -291,7 +291,7 @@ class Route{
 
 				//parse flags for determining match string
 				if(!empty($rule['flags']['regex'])){
-					$rule['matcher'] = \Grithin\Strings::pregDelimit($rule[0]);
+					$rule['matcher'] = \Grithin\Strings::preg_delimit($rule[0]);
 					if(!empty($rule['flags']['caseless'])){
 						$rule['matcher'] .= 'i';	}
 
