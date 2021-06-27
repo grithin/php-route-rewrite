@@ -1,12 +1,30 @@
 # Grithin's PHP Route
 
-See example folder
+In the beginning, Apache mapped file system path to url path on incoming requests.  This wasn't ideal for scripts, since Apache could fail and return the script in plaintext.  Matching the file system with the url path is still the avenue of least surprise.
 
-## Design Goal
+This Route class provides the functionality of file path to url path mapping, without making the script files public, and with a few additions:
+-	a `_routing.php` file can server like an `.htaccess` file with `mod_rewrite`.
+	-	looped rule checking.  When a path changes because of a route rule, it may be desirable to recheck the existing rules for the new path, and do subsequent rewrites.  This is possible with `Route`.
+-	a `_control.php` file will be run for anything at and deeper within that path.  This servers as a sort of section initilization file.
 
--	Provide standard predictable control flow by mimicking the url path for control file loads
--	Provide modularized routing instead of monolithic routing (separated, conditionally loaded routes instead of all routes  in one file)
--	Provide extreme customisability and the ability to loop over rules similar to apache mod rewrite.
+The benefit to doing it this way, instead of having a single route file that maps directly to flat controller classes is:
+-	expectable location of control logic
+	-	`/section/page` would be at `/section/page.php` by default
+-	expectable locations of route rules for particular paths
+	-	if a section had specific routes, they can be organized with their section route area `/section/_routing.php`
+-	expectable locations of section specific control logic
+	-	for example, if a section is only allowed for a certain type of user to access it, that logic would be at `section/_control.php`
+-	complex routing: see [The Route Loop](#the-route-loop)
+
+
+There are some downsides to this method of routing:
+-	in order to get all route rules, you'd have to collect the various `_routing.php` files
+-	control logic is run as a file, not a function.  Although Route isolates the context of the files so there is no variable collision, the use of files changes the way tests are written
+-	in order to get all possible routes, you'd have to consider both the route rules and the default behavior of matching url paths to file paths
+
+Let's consider some UserController in some framework X that uses flat routing.  A benefit to a UserController, that handles incoming paths like '/user/x', is the ability to share functionality and variables.  Sometimes it is useful for a set of control functions to have access to the same control related utility functions, and sometimes its useful that a section controller sets some initialization or section sepcific variable data.  However, all of this is reproducable with `Route` through section `_control.php` files and `Route` globals (see [Route Globals](#route-globals))
+
+
 
 ## Structure
 There is a control folder (`/control`), and in that control folder are route files and control files.  
@@ -42,22 +60,50 @@ Not all of these control files need to exist.  At any point in the path, you can
 Here, `/control/part1.php` replaces `/control/part1/_control.php`.  The `/control/_control.php` is an optional global control file, which is loaded for all requests.
 
 
-## The Route Loop
-A route file is only run once, but it's rules may apply multiple times, if the path changes
 
-### Example
+
+## Route Globals
+In the course of chained control logic, it is sometimes useful for the items in the chain to share-forward functionality or variables.  To enable this, `Route` provides a global array, which it injects/unpacks into `_control.php` files.  By default, two globals are always available: `Route`, which refers to the Route instance, and `control`, which is an ArrayObject intended to be where you place control functionality and variables you want to share.  However, you can add globals.
+
+
+```php
+# file: _control.php
+$control['sale'] = '10% off all blah';
+$Route->globals['customize_for_user'] = function(){};
+
+
+# file: section/item.php
+view($customize_for_user($control['sale']))
+```
+
+
+
+
+## The Route Loop
+A route file is only run once, but it's rules may apply multiple times, if the path changes.  This operations in a similar fashion to the rule loop of mod_rewrite.  It also, like mod_rewrite, allows the option for a rule to be final, and discontinue the loop.
+
 Path: `/test1/test2/test3`
 Route Loading:
--	load `/_routing.php`, run file rule set
--	load `/test1/_routing.php`, run file rule set
--	load `/test1/test2/_routing.php`, run file rule set
+-	load `/_routing.php`
+-	run rules from `/_routing.php`
+-	no path change, continue
+-	load `/test1/_routing.php`
+-	run rules from `/test1/_routing.php`
+-	no path change, continue
+-	load `/test1/test2/_routing.php`
+-	run rules from `/test1/test2/_routing.php`
+-	_path changes to_ `/moved_section1/bob`
+-	run rules from `/_routing.php`
+-	_path changes to_ `/section1/bob`
+-	run rules from `/_routing.php`
+-	no path change, continue
+-	load `/section1/_routing.php`
+-	run rules from  `/section1/_routing.php`
+-	no path change, continue
+-	path final result: `/section1/bob`
 
--	rule changes path to `/test1/bob/bill`
 
--	run `/_routing.php` file rule set
--	run `/test1/_routing.php` file rule set
--	load `/test1/bob/_routing.php`, run file rule set
--	load `/test1/bob/bill/_routing.php`, run file rule set
+
 
 ### Stopping the Loop
 A rule can have a flag of `last`, and if that rule matches, the loop will stop after it.
@@ -94,9 +140,6 @@ return [
 ### Route Rule
 ```php
 [$match_pattern, $change, $flags]
-```
-```simpex
-'["'match_pattern'","'change'","'flag1','flag2'"]'
 ```
 
 #### $match_pattern

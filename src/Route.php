@@ -70,7 +70,7 @@ class Route{
 	public $regex_matches = []; # compilation of regex match groups
 	public $matcher='';///< routing rules: the last matcher string used with a callback
 
-	public $globals = [];///< variables to add to every loaded control.  Will always include 'route', to allow in-control additions
+	public $globals = [];///< variables to add to every loaded control.  Will always include 'Route', to allow in-control additions
 
 	public $max_loops = 20;
 
@@ -106,7 +106,8 @@ class Route{
 
 	/** will load controls according to parsedTokens and unparsedTokens */
 	function load(){
-		$this->globals['Route'] = $this->globals['route'] = $this;
+		$this->globals['Route'] = $this;
+		$this->globals['control'] = new ArrayObject;
 
 		# see if there is an initial control.php file at the start of the control token loop
 		if(!$this->parsedTokens){
