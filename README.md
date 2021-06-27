@@ -34,11 +34,11 @@ control/page.php
 ```
 
 ```php
-# index.php
+# public/index.php
 
 $_SERVER['REQUEST_URI'] = '/page';
 
-$Route = new Route(['folder'=>realpath(__DIR__.'/../')]);
+$Route = new Route(['folder'=>realpath(__DIR__.'/../control')]);
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $Route->handle($path); # loads control/page.php
 ```
