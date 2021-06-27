@@ -3,17 +3,17 @@
 In the beginning, Apache mapped file system path to url path on incoming requests.  This wasn't ideal for scripts, since Apache could fail and return the script in plaintext.  Matching the file system with the url path is still the avenue of least surprise.
 
 This Route class provides the functionality of file path to url path mapping, without making the script files public, and with a few additions:
--	a `_routing.php` file can server like an `.htaccess` file with `mod_rewrite`.
+-	a `_routing.php` file can serve like an `.htaccess` file with `mod_rewrite`.
 	-	looped rule checking.  When a path changes because of a route rule, it may be desirable to recheck the existing rules for the new path, and do subsequent rewrites.  This is possible with `Route`.
--	a `_control.php` file will be run for anything at and deeper within that path.  This servers as a sort of section initilization file.
+-	a `_control.php` file will be run for anything within it's placed path hierarchy.
 
-The benefit to doing it this way, instead of having a single route file that maps directly to flat controller classes is:
+The benefit to doing it this way, instead of having a single route file that maps directly to flat controller classes, is:
 -	expectable location of control logic
 	-	`/section/page` would be at `/section/page.php` by default
 -	expectable locations of route rules for particular paths
-	-	if a section had specific routes, they can be organized with their section route area `/section/_routing.php`
+	-	if a section had specific routes, they will either be at `/section/_routing.php` or `/_routing.php`
 -	expectable locations of section specific control logic
-	-	for example, if a section is only allowed for a certain type of user to access it, that logic would be at `section/_control.php`
+	-	for example, if only a certain type of user can access a section, that logic would be at `section/_control.php`
 -	complex routing: see [The Route Loop](#the-route-loop)
 
 
@@ -23,6 +23,25 @@ There are some downsides to this method of routing:
 -	in order to get all possible routes, you'd have to consider both the route rules and the default behavior of matching url paths to file paths
 
 Let's consider some UserController in some framework X that uses flat routing.  A benefit to a UserController, that handles incoming paths like '/user/x', is the ability to share functionality and variables.  Sometimes it is useful for a set of control functions to have access to the same control related utility functions, and sometimes its useful that a section controller sets some initialization or section sepcific variable data.  However, all of this is reproducable with `Route` through section `_control.php` files and `Route` globals (see [Route Globals](#route-globals))
+
+
+## Simple Example
+
+File paths
+```
+public/index.php
+control/page.php
+```
+
+```php
+# index.php
+
+$_SERVER['REQUEST_URI'] = '/page';
+
+$Route = new Route(['folder'=>realpath(__DIR__.'/../')]);
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$Route->handle($path); # loads control/page.php
+```
 
 
 
@@ -63,7 +82,7 @@ Here, `/control/part1.php` replaces `/control/part1/_control.php`.  The `/contro
 
 
 ## Route Globals
-In the course of chained control logic, it is sometimes useful for the items in the chain to share-forward functionality or variables.  To enable this, `Route` provides a global array, which it injects/unpacks into `_control.php` files.  By default, two globals are always available: `Route`, which refers to the Route instance, and `control`, which is an ArrayObject intended to be where you place control functionality and variables you want to share.  However, you can add globals.
+In the course of chained control logic, it is sometimes useful for the items in the chain to share-forward functionality or variables.  To enable this, `Route` provides a global array, which it injects/unpacks into control files (like `_control.php` or `page.php`) files.  By default, two globals are always available: `Route`, which refers to the Route instance, and `control`, which is an ArrayObject intended to be where you place control functionality and variables you want to share.  However, you can add globals.
 
 
 ```php
@@ -92,9 +111,9 @@ Route Loading:
 -	no path change, continue
 -	load `/test1/test2/_routing.php`
 -	run rules from `/test1/test2/_routing.php`
--	_path changes to_ `/moved_section1/bob`
+-	**path changes to** `/moved_section1/bob`
 -	run rules from `/_routing.php`
--	_path changes to_ `/section1/bob`
+-	**path changes to** `/section1/bob`
 -	run rules from `/_routing.php`
 -	no path change, continue
 -	load `/section1/_routing.php`
