@@ -18,7 +18,7 @@ Mod rewrite provides some useful features:
 RouteRewrite provides these
 */
 
-class RouteRewrite{
+class RouteRewrite implements \Psr\Http\Server\MiddlewareInterface{
 	public $data = [];  # rules can cause additions to data
 	public $logger = false;
 
