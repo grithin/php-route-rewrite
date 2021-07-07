@@ -1,4 +1,4 @@
-# PHP Route Rewrite.
+# PHP Route Rewrite
 
 For potentially complex path or destination rewriting, similar to Apache's mod_rewrite.  This is a rewrite of \Grithin\Route, to be PSR 15 middleware.
 
